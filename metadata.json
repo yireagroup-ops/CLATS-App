@@ -1,0 +1,6 @@
+{
+  "name": "CLATS Student Learning Platform",
+  "description": "Interactive futures technology tracking platform suited for various developmental stages spanning early innovators to youth builders.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
