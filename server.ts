@@ -2147,14 +2147,14 @@ app.delete("/api/supabase/content_releases/:id", async (req, res) => {
 // ---------------- GOOGLE OAUTH AUTHENTICATION ENDPOINTS ----------------
 app.get("/api/auth/google/url", (req, res) => {
   const origin = (req.query.origin as string) || "http://localhost:3000";
-  const redirectUri = `${origin}/auth/callback`;
+  const redirectUri = `${origin}/api/auth/callback`;
   const clientId = process.env.GOOGLE_CLIENT_ID;
 
   if (!clientId) {
     // If client id is not configured yet, trigger our premium development simulator route!
     return res.json({
       configured: false,
-      url: `${origin}/auth/callback?simulated=true&state=${encodeURIComponent(origin)}`
+      url: `${origin}/api/auth/callback?simulated=true&state=${encodeURIComponent(origin)}`
     });
   }
 
@@ -2162,7 +2162,7 @@ app.get("/api/auth/google/url", (req, res) => {
   return res.json({ configured: true, url: googleAuthUrl });
 });
 
-app.get(["/auth/callback", "/auth/callback/"], async (req, res) => {
+app.get(["/api/auth/callback", "/api/auth/callback/"], async (req, res) => {
   try {
     const isSimulated = req.query.simulated === "true";
     let email = (req.query.email as string) || "";
@@ -2171,7 +2171,7 @@ app.get(["/auth/callback", "/auth/callback/"], async (req, res) => {
     if (!isSimulated && !email) {
       const code = req.query.code as string;
       const origin = (req.query.state as string) || "http://localhost:3000";
-      const redirectUri = `${origin}/auth/callback`;
+      const redirectUri = `${origin}/api/auth/callback`;
 
       if (code && process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
         // Exchange code for Google Access Token
@@ -2207,7 +2207,7 @@ app.get(["/auth/callback", "/auth/callback/"], async (req, res) => {
         <html>
           <body style="font-family: sans-serif; background: #0f172a; color: white; text-align: center; padding-top: 50px;">
             <p>Access Token invalid or missing. Redirecting to Sandbox Simulator...</p>
-            <script>window.location.href = '/auth/callback?simulated=true';</script>
+            <script>window.location.href = '/api/auth/callback?simulated=true';</script>
           </body>
         </html>
       `);
@@ -2476,7 +2476,7 @@ app.get(["/auth/callback", "/auth/callback/"], async (req, res) => {
                   e.preventDefault();
                   const email = document.getElementById('email').value;
                   const name = document.getElementById('name').value;
-                  window.location.href = '/auth/callback?email=' + encodeURIComponent(email) + '&name=' + encodeURIComponent(name);
+                  window.location.href = '/api/auth/callback?email=' + encodeURIComponent(email) + '&name=' + encodeURIComponent(name);
                 };
               </script>
             </div>`
