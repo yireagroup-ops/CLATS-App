@@ -416,16 +416,6 @@ export const TutorialTour: React.FC<TutorialTourProps> = ({ role, childAgeGroup 
         elementRef.current = el;
         const bounding = el.getBoundingClientRect();
         setRect(bounding);
-        
-        // Auto Scroll to view if offscreen
-        const isOffscreen = 
-          bounding.top < 0 || 
-          bounding.bottom > window.innerHeight || 
-          bounding.left < 0 || 
-          bounding.right > window.innerWidth;
-        if (isOffscreen) {
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
       } else {
         setRect(null);
       }
@@ -453,6 +443,30 @@ export const TutorialTour: React.FC<TutorialTourProps> = ({ role, childAgeGroup 
       window.removeEventListener("resize", updatePosition);
       window.removeEventListener("scroll", handleScroll);
     };
+  }, [stepIndex, currentStep?.targetSelector]);
+
+  // Handle auto-scroll only once when the step changes
+  useEffect(() => {
+    if (!currentStep) return;
+    
+    // Give DOM a tiny moment to render the new step before scrolling
+    const timeoutId = setTimeout(() => {
+      const el = document.querySelector(currentStep.targetSelector);
+      if (el) {
+        const bounding = el.getBoundingClientRect();
+        const isOffscreen = 
+          bounding.top < 0 || 
+          bounding.bottom > window.innerHeight || 
+          bounding.left < 0 || 
+          bounding.right > window.innerWidth;
+          
+        if (isOffscreen) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }
+    }, 100);
+    
+    return () => clearTimeout(timeoutId);
   }, [stepIndex, currentStep?.targetSelector]);
 
   const handleNext = () => {
