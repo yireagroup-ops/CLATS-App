@@ -4381,7 +4381,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToPortal, 
                       Create Administrator
                     </button>
                   </div>
-                </div>
 
                   {/* SUPABASE SQL INSTANT SETUP GUIDE SECTION */}
                   <div className="mt-4 p-4 rounded-xl border border-dashed border-slate-300 dark:border-slate-800 space-y-3 bg-slate-50 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300">
