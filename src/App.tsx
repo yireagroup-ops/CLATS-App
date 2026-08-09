@@ -20,15 +20,17 @@ import {
 import { CLATSLogo } from "./components/CLATSLogo";
 import { Card, Heading, Txt, Chip, Btn, Label } from "./components/Primitives";
 import { ParentAuthScreen } from "./components/ParentAuth";
-import { ParentDashboard } from "./components/ParentDashboard";
 import { SettingsScreen, ChildSetupScreen } from "./components/Settings";
-import { ChildApp } from "./components/ChildApp";
-import { ParentCommunity } from "./components/ParentCommunity";
 import { WelcomeModal, TutorialTour, ContextualTip } from "./components/TourOverlay";
 import { SplashScreen } from "./components/SplashScreen";
 import { Onboarding, MascotImage } from "./components/Onboarding";
 import { ChildLoginScreen } from "./components/ChildAccess";
-import { AdminDashboard } from "./components/AdminDashboard";
+
+// Dynamically import massive dashboard components to prevent initial hydration scroll-blocking (chunk splitting)
+const ParentDashboard = React.lazy(() => import("./components/ParentDashboard").then(m => ({ default: m.ParentDashboard })));
+const ChildApp = React.lazy(() => import("./components/ChildApp").then(m => ({ default: m.ChildApp })));
+const ParentCommunity = React.lazy(() => import("./components/ParentCommunity").then(m => ({ default: m.ParentCommunity })));
+const AdminDashboard = React.lazy(() => import("./components/AdminDashboard").then(m => ({ default: m.AdminDashboard })));
 import { sfx, companionVoice } from "./utils/audio";
 import {
   Sparkles,
@@ -333,1172 +335,1175 @@ export default function App() {
           zIndex: 0
         }}
       />
-      {/* 0. ONBOARDING HUB SCREEN */}
-      {view === "onboarding" && (
-        <Onboarding
-          initialStep={onboardingInitialStep}
-          onSelectRole={(role) => {
-            localStorage.setItem("clats_onboarded", "true");
-            if (role === "parent") {
-              setAuthBackView("onboarding");
-              setAuthMode("register");
-              setView("parentAuth");
-            } else {
-              setAuthBackView("onboarding");
-              setView("childLogin");
-            }
-          }}
-          lang={lang}
-          theme={theme}
-        />
-      )}
 
-      {/* 1. WELCOME SELECTION HUB SCREEN */}
-      {view === "welcome" && (
-        <div
-          style={{
-            minHeight: "100vh",
-            background: isDark ? "#0F172A" : "#F8FAFC",
-            color: isDark ? "#F8FAFC" : "#0F172A",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            paddingBottom: 64,
-            boxSizing: "border-box",
-            position: "relative",
-            transition: "background 0.3s ease, color 0.3s ease"
-          }}
-        >
-          {/* Keyframe Injector block for gentle child-friendly micro-animations */}
-          <style>{`
-            @keyframes clatsFloat {
-              0% { transform: translateY(0px) rotate(0deg); }
-              50% { transform: translateY(-10px) rotate(2deg); }
-              100% { transform: translateY(0px) rotate(0deg); }
-            }
-            @keyframes clatsFloatDelayed {
-              0% { transform: translateY(0px) rotate(0deg); }
-              50% { transform: translateY(8px) rotate(-2deg); }
-              100% { transform: translateY(0px) rotate(0deg); }
-            }
-            @keyframes clatsPulseSparkle {
-              0%, 100% { transform: scale(1); opacity: 0.8; }
-              50% { transform: scale(1.15); opacity: 1; filter: drop-shadow(0 0 6px rgba(255,209,102,0.5)); }
-            }
-            .clats-float-1 { animation: clatsFloat 5s ease-in-out infinite; }
-            .clats-float-2 { animation: clatsFloatDelayed 6s ease-in-out infinite; }
-            .clats-float-3 { animation: clatsFloat 7s ease-in-out infinite; }
-            .clats-sparkle { animation: clatsPulseSparkle 4s ease-in-out infinite; }
-          `}</style>
+      <React.Suspense fallback={<div className="flex h-screen items-center justify-center text-teal-500 font-bold animate-pulse">Loading core engine...</div>}>
+        {/* 0. ONBOARDING HUB SCREEN */}
+        {view === "onboarding" && (
+          <Onboarding
+            initialStep={onboardingInitialStep}
+            onSelectRole={(role) => {
+              localStorage.setItem("clats_onboarded", "true");
+              if (role === "parent") {
+                setAuthBackView("onboarding");
+                setAuthMode("register");
+                setView("parentAuth");
+              } else {
+                setAuthBackView("onboarding");
+                setView("childLogin");
+              }
+            }}
+            lang={lang}
+            theme={theme}
+          />
+        )}
 
-          {/* HEADER SECTION (Reduced vertical space, Left Logo, Center Tagline, Right Segmented Selector) */}
-          <header
+        {/* 1. WELCOME SELECTION HUB SCREEN */}
+        {view === "welcome" && (
+          <div
             style={{
-              width: "100%",
-              borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #E2E8F0",
-              background: isDark ? "#1E293B" : "#FFFFFF",
-              padding: "12px 24px",
-              boxSizing: "border-box",
+              minHeight: "100vh",
+              background: isDark ? "#0F172A" : "#F8FAFC",
+              color: isDark ? "#F8FAFC" : "#0F172A",
               display: "flex",
-              justifyContent: "space-between",
+              flexDirection: "column",
               alignItems: "center",
-              gap: 16,
-              zIndex: 30,
-              transition: "background 0.3s ease, border-color 0.3s ease"
-            }}
-          >
-            {/* Left: CLATS Logo */}
-            <div>
-              <CLATSLogo height={32} />
-            </div>
-
-            {/* Center: Tagline */}
-            <div className="hidden md:block" style={{ textAlign: "center" }}>
-              <span
-                style={{
-                  fontFamily: F.display,
-                  fontSize: 14,
-                  fontWeight: 800,
-                  color: "#2EC4B6",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em"
-                }}
-              >
-                Building Tomorrow's Tech Minds Today
-              </span>
-            </div>
-
-            {/* Right: Modern Segmented Switch */}
-            <div
-              style={{
-                display: "flex",
-                background: isDark ? "rgba(255, 255, 255, 0.06)" : "#F1F5F9",
-                border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #E2E8F0",
-                padding: 3,
-                borderRadius: 999,
-                alignItems: "center",
-                transition: "all 0.3s ease"
-              }}
-            >
-              {[
-                { code: "en" as const, label: "EN" },
-                { code: "ig" as const, label: "IG" },
-                { code: "yo" as const, label: "YO" }
-              ].map((l) => {
-                const isActive = lang === l.code;
-                return (
-                  <button
-                    key={l.code}
-                    onClick={() => {
-                      sfx.playTap();
-                      handleLanguageChange(l.code);
-                    }}
-                    style={{
-                      padding: "6px 14px",
-                      borderRadius: 999,
-                      fontSize: 12,
-                      fontWeight: 800,
-                      border: "none",
-                      background: isActive ? (isDark ? "#2EC4B6" : "#FFFFFF") : "transparent",
-                      color: isActive ? (isDark ? "#FFFFFF" : "#2EC4B6") : (isDark ? "#94A3B8" : "#64748B"),
-                      cursor: "pointer",
-                      boxShadow: isActive ? "0 2px 8px rgba(46, 196, 182, 0.15)" : "none",
-                      transition: "all 0.2s ease"
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isActive) e.currentTarget.style.color = "#2EC4B6";
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isActive) e.currentTarget.style.color = isDark ? "#94A3B8" : "#64748B";
-                    }}
-                  >
-                    {l.label}
-                  </button>
-                );
-              })}
-            </div>
-          </header>
-
-          {/* HERO CONTAINER */}
-          <div
-            style={{
-              position: "relative",
-              width: "100%",
-              maxWidth: 960,
-              textAlign: "center",
-              marginTop: 48,
-              marginBottom: 40,
-              padding: "0 20px",
-              boxSizing: "border-box"
-            }}
-          >
-            {/* FLOATING DECORATIONS */}
-            <div className="absolute top-[-20px] left-[5%] clats-float-1 pointer-events-none hidden sm:flex items-center gap-1.5 bg-yellow-100 px-3 py-1.5 rounded-full border border-yellow-200 shadow-sm text-xs font-bold text-yellow-600">
-              <Star size={14} fill="#FFD166" color="#FFD166" />
-              <span>STARS</span>
-            </div>
-            <div className="absolute top-[-35px] right-[8%] clats-float-2 pointer-events-none hidden sm:flex items-center gap-1.5 bg-purple-100 px-3 py-1.5 rounded-full border border-purple-200 shadow-sm text-xs font-bold text-purple-600">
-              <BookOpen size={14} color="#B8A0FF" />
-              <span>BOOKS</span>
-            </div>
-            <div className="absolute bottom-[-10px] left-[10%] clats-float-3 pointer-events-none hidden sm:flex items-center gap-1.5 bg-teal-100 px-3 py-1.5 rounded-full border border-teal-200 shadow-sm text-xs font-bold text-teal-600">
-              <Lightbulb size={14} color="#2EC4B6" />
-              <span>IDEAS</span>
-            </div>
-            <div className="absolute bottom-[-20px] right-[12%] clats-float-1 pointer-events-none hidden sm:flex items-center gap-1.5 bg-red-100 px-3 py-1.5 rounded-full border border-red-200 shadow-sm text-xs font-bold text-red-500">
-              <Rocket size={14} className="transform rotate-45" />
-              <span>ROCKETS</span>
-            </div>
-
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 10, justifyContent: "center", marginBottom: 12 }}>
-              <div
-                style={{
-                  background: "linear-gradient(135deg, rgba(46,196,182,0.15), rgba(184,160,255,0.15))",
-                  padding: "6px 14px",
-                  borderRadius: 99,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6
-                }}
-              >
-                <Sparkles size={14} style={{ color: "#2EC4B6" }} className="clats-sparkle" />
-                <span style={{ fontSize: 11, fontWeight: 900, fontFamily: F.mono, color: "#2EC4B6", letterSpacing: 1.2 }}>
-                  WELCOME TO THE ADVENTURE
-                </span>
-              </div>
-            </div>
-
-            <h1
-              style={{
-                fontFamily: F.display,
-                fontSize: 42,
-                fontWeight: 950,
-                color: isDark ? "#FFFFFF" : "#1E293B",
-                lineHeight: 1.1,
-                margin: "0 0 12px",
-                letterSpacing: "-0.03em"
-              }}
-            >
-              Welcome to CLATS
-            </h1>
-            <p
-              style={{
-                fontFamily: F.body,
-                fontSize: 16,
-                fontWeight: 600,
-                color: "#2EC4B6",
-                margin: "0 0 14px",
-                textTransform: "uppercase",
-                letterSpacing: "0.08em"
-              }}
-            >
-              Building tomorrow's tech minds today.
-            </p>
-            <p
-              style={{
-                fontFamily: F.body,
-                fontSize: 15,
-                fontWeight: 500,
-                color: isDark ? "#94A3B8" : "#64748B",
-                maxWidth: 580,
-                margin: "0 auto",
-                lineHeight: 1.5
-              }}
-            >
-              Choose how you would like to enter the CLATS learning experience.
-            </p>
-          </div>
-
-          {/* MAIN PORTAL OPTIONS (2 columns side-by-side, responsive layout) */}
-          <div
-            style={{
-              width: "100%",
-              maxWidth: 960,
-              padding: "0 20px",
+              paddingBottom: 64,
               boxSizing: "border-box",
-              zIndex: 10
+              position: "relative",
+              transition: "background 0.3s ease, color 0.3s ease"
             }}
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-6 lg:gap-10">
-              
-              {/* CARD 1: PARENT PORTAL */}
-              <div
-                style={{
-                  background: isDark ? "#1E293B" : "#FFFFFF",
-                  borderRadius: 24,
-                  border: isDark ? "2px solid rgba(255, 255, 255, 0.08)" : "2px solid #E2E8F0",
-                  padding: 32,
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  boxShadow: isDark ? "0 10px 30px rgba(0, 0, 0, 0.2)" : "0 10px 25px rgba(148, 163, 184, 0.05)",
-                  transition: "all 0.25s ease, background 0.3s ease, border-color 0.3s ease",
-                  boxSizing: "border-box"
-                }}
-                className="hover:shadow-[0_15px_30px_rgba(184,160,255,0.08)] hover:scale-[1.01] hover:border-[#B8A0FF]/40"
-              >
-                <div>
-                  {/* Decorative Illustration */}
-                  <div
-                    style={{
-                      background: isDark ? "rgba(255, 255, 255, 0.03)" : "linear-gradient(135deg, rgba(184, 160, 255, 0.08) 0%, rgba(46, 196, 182, 0.08) 100%)",
-                      borderRadius: 20,
-                      height: 160,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginBottom: 24,
-                      overflow: "hidden",
-                      position: "relative",
-                      border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #E2E8F0"
-                    }}
-                  >
-                    {/* Modern Visual mock of parent monitoring progress */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 16, width: "90%", zIndex: 2 }}>
-                      <div
-                        style={{
-                          background: "#B8A0FF",
-                          borderRadius: "50%",
-                          width: 52,
-                          height: 52,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          boxShadow: "0 8px 16px rgba(184,160,255,0.25)"
-                        }}
-                      >
-                        <span style={{ fontSize: 24 }}>👩‍💻</span>
-                      </div>
-                      
-                      {/* Interactive connector with active pulsing bar */}
-                      <div style={{ flex: 1, height: 4, position: "relative", background: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(148, 163, 184, 0.15)", borderRadius: 2 }}>
-                        <div style={{ position: "absolute", left: "45%", top: -4, width: 12, height: 12, borderRadius: "50%", background: "#2EC4B6", animation: "ping 1.5s infinite" }} />
-                        <div style={{ position: "absolute", right: 0, top: -4, width: 10, height: 10, borderRadius: "50%", background: isDark ? "#475569" : "#CBD5E1" }} />
-                      </div>
+            {/* Keyframe Injector block for gentle child-friendly micro-animations */}
+            <style>{`
+              @keyframes clatsFloat {
+                0% { transform: translateY(0px) rotate(0deg); }
+                50% { transform: translateY(-10px) rotate(2deg); }
+                100% { transform: translateY(0px) rotate(0deg); }
+              }
+              @keyframes clatsFloatDelayed {
+                0% { transform: translateY(0px) rotate(0deg); }
+                50% { transform: translateY(8px) rotate(-2deg); }
+                100% { transform: translateY(0px) rotate(0deg); }
+              }
+              @keyframes clatsPulseSparkle {
+                0%, 100% { transform: scale(1); opacity: 0.8; }
+                50% { transform: scale(1.15); opacity: 1; filter: drop-shadow(0 0 6px rgba(255,209,102,0.5)); }
+              }
+              .clats-float-1 { animation: clatsFloat 5s ease-in-out infinite; }
+              .clats-float-2 { animation: clatsFloatDelayed 6s ease-in-out infinite; }
+              .clats-float-3 { animation: clatsFloat 7s ease-in-out infinite; }
+              .clats-sparkle { animation: clatsPulseSparkle 4s ease-in-out infinite; }
+            `}</style>
 
-                      {/* Right Child Circle with progress metrics overlay */}
-                      <div style={{ display: "flex", flexDirection: "column", gap: 6, background: isDark ? "#0F172A" : "#FFFFFF", padding: "10px 14px", borderRadius: 16, border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid #E2E8F0", boxShadow: "0 4px 12px rgba(0,0,0,0.03)" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span style={{ fontSize: 16 }}>👦</span>
-                          <span style={{ fontSize: 10, fontFamily: F.mono, fontWeight: 800, color: isDark ? "#94A3B8" : "#64748B" }}>KOBE</span>
-                          <div style={{ background: "#4ADE80", width: 6, height: 6, borderRadius: "50%" }} />
-                        </div>
-                        {/* Screen limit mockup bar */}
-                        <div style={{ width: 100, height: 6, background: isDark ? "#1E293B" : "#E2E8F0", borderRadius: 3, overflow: "hidden" }}>
-                          <div style={{ width: "70%", height: "100%", background: "#2EC4B6" }} />
-                        </div>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 8.5, fontFamily: F.mono, fontWeight: 800, color: "#10B981" }}>
-                          <span>SCREEN TIME</span>
-                          <span>70%</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <h3
-                    style={{
-                      fontFamily: F.display,
-                      fontSize: 22,
-                      fontWeight: 900,
-                      color: isDark ? "#F8FAFC" : "#1E293B",
-                      marginBottom: 8,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8
-                    }}
-                  >
-                    <span>🛡️</span>
-                    Parent Portal
-                  </h3>
-                  
-                  <p
-                    style={{
-                      fontFamily: F.body,
-                      fontSize: 14,
-                      color: isDark ? "#94A3B8" : "#64748B",
-                      lineHeight: 1.6,
-                      marginBottom: 28,
-                      minHeight: 64
-                    }}
-                  >
-                    Create child profiles, manage screen-time settings, track progress, and support your child's learning journey.
-                  </p>
-                </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  <button
-                    onClick={() => {
-                      sfx.playTap();
-                      setAuthBackView("welcome");
-                      setAuthMode("register");
-                      setView("parentAuth");
-                    }}
-                    style={{
-                      background: "linear-gradient(135deg, #2EC4B6 0%, #20A599 100%)",
-                      color: "#FFFFFF",
-                      border: "none",
-                      borderRadius: 16,
-                      padding: "14px 20px",
-                      fontSize: 14,
-                      fontWeight: 800,
-                      fontFamily: F.display,
-                      cursor: "pointer",
-                      width: "100%",
-                      boxShadow: "0 6px 16px rgba(46, 196, 182, 0.2)",
-                      transition: "all 0.2s ease"
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = "scale(1.02)";
-                      e.currentTarget.style.boxShadow = "0 8px 20px rgba(46, 196, 182, 0.3)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = "";
-                      e.currentTarget.style.boxShadow = "0 6px 16px rgba(46, 196, 182, 0.2)";
-                    }}
-                  >
-                    Create Parent Account
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      sfx.playTap();
-                      setAuthBackView("welcome");
-                      setAuthMode("login");
-                      setView("parentAuth");
-                    }}
-                    style={{
-                      background: isDark ? "#1E293B" : "#FFFFFF",
-                      border: "2px solid #B8A0FF",
-                      color: "#B8A0FF",
-                      borderRadius: 16,
-                      padding: "12px 20px",
-                      fontSize: 14,
-                      fontWeight: 800,
-                      fontFamily: F.display,
-                      cursor: "pointer",
-                      width: "100%",
-                      transition: "all 0.2s ease"
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = isDark ? "rgba(184, 160, 255, 0.15)" : "rgba(184, 160, 255, 0.05)";
-                      e.currentTarget.style.transform = "scale(1.02)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = isDark ? "#1E293B" : "#FFFFFF";
-                      e.currentTarget.style.transform = "";
-                    }}
-                  >
-                    Sign In
-                  </button>
-                </div>
-              </div>
-
-              {/* CARD 2: CHILD LEARNING PORTAL */}
-              <div
-                style={{
-                  background: isDark ? "#1E293B" : "#FFFFFF",
-                  borderRadius: 24,
-                  border: isDark ? "2px solid rgba(255, 255, 255, 0.08)" : "2px solid #E2E8F0",
-                  padding: 32,
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  boxShadow: isDark ? "0 10px 30px rgba(0, 0, 0, 0.2)" : "0 10px 25px rgba(148, 163, 184, 0.05)",
-                  transition: "all 0.25s ease, background 0.3s ease, border-color 0.3s ease",
-                  boxSizing: "border-box"
-                }}
-                className="hover:shadow-[0_15px_30px_rgba(255,209,102,0.12)] hover:scale-[1.01] hover:border-[#FFD166]/60"
-              >
-                <div>
-                  {/* Decorative Illustration */}
-                  <div
-                    style={{
-                      background: isDark ? "rgba(255, 255, 255, 0.03)" : "linear-gradient(135deg, rgba(255, 209, 102, 0.12) 0%, rgba(46, 196, 182, 0.08) 100%)",
-                      borderRadius: 20,
-                      height: 160,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginBottom: 24,
-                      overflow: "hidden",
-                      position: "relative",
-                      border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #E2E8F0"
-                    }}
-                  >
-                    {/* Floating Mascots with friendly text bubble */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, zIndex: 2 }}>
-                      <div className="clats-float-1" style={{ transformOrigin: "bottom center" }}>
-                        <MascotImage character="kobe" height={68} />
-                      </div>
-                      
-                      {/* Interactive speech tag styled like Duolingo */}
-                      <div
-                        style={{
-                          background: isDark ? "#0F172A" : "#FFFFFF",
-                          border: isDark ? "1.5px solid rgba(255,255,255,0.15)" : "1.5px solid #FFD166",
-                          borderRadius: 14,
-                          padding: "6px 12px",
-                          fontSize: 11,
-                          fontWeight: 800,
-                          color: isDark ? "#F8FAFC" : "#1E293B",
-                          position: "relative",
-                          boxShadow: "0 4px 10px rgba(255,209,102,0.15)",
-                          maxWidth: 100,
-                          textAlign: "center"
-                        }}
-                        className="clats-sparkle"
-                      >
-                        <span style={{ fontFamily: F.display }}>LEARN & PLAY! ✨</span>
-                        <div
-                          style={{
-                            position: "absolute",
-                            left: -5,
-                            top: "50%",
-                            transform: "translateY(-50%) rotate(45deg)",
-                            background: isDark ? "#0F172A" : "#FFFFFF",
-                            borderLeft: isDark ? "1.5px solid rgba(255,255,255,0.15)" : "1.5px solid #FFD166",
-                            borderBottom: isDark ? "1.5px solid rgba(255,255,255,0.15)" : "1.5px solid #FFD166",
-                            width: 8,
-                            height: 8
-                          }}
-                        />
-                      </div>
-
-                      <div className="clats-float-2" style={{ transformOrigin: "bottom center" }}>
-                        <MascotImage character="chibi" height={72} />
-                      </div>
-                    </div>
-                  </div>
-
-                  <h3
-                    style={{
-                      fontFamily: F.display,
-                      fontSize: 22,
-                      fontWeight: 900,
-                      color: isDark ? "#F8FAFC" : "#1E293B",
-                      marginBottom: 8,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8
-                    }}
-                  >
-                    <span>🚀</span>
-                    Child Learning Portal
-                  </h3>
-                  
-                  <p
-                    style={{
-                      fontFamily: F.body,
-                      fontSize: 14,
-                      color: isDark ? "#94A3B8" : "#64748B",
-                      lineHeight: 1.6,
-                      marginBottom: 28,
-                      minHeight: 64
-                    }}
-                  >
-                    Continue your learning adventure, complete lessons, earn badges, and unlock new levels.
-                  </p>
-                </div>
-
-                <div>
-                  <button
-                    onClick={() => {
-                      sfx.playCoin();
-                      setLearningModalOpen(true);
-                    }}
-                    style={{
-                      background: "linear-gradient(135deg, #FFD166 0%, #FBBF24 100%)",
-                      color: "#1E293B",
-                      border: "none",
-                      borderRadius: 16,
-                      padding: "16px 20px",
-                      fontSize: 15,
-                      fontWeight: 900,
-                      fontFamily: F.display,
-                      cursor: "pointer",
-                      width: "100%",
-                      boxShadow: "0 6px 16px rgba(250, 204, 21, 0.2)",
-                      transition: "all 0.2s ease"
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = "scale(1.02)";
-                      e.currentTarget.style.boxShadow = "0 8px 22px rgba(250, 204, 21, 0.35)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = "";
-                      e.currentTarget.style.boxShadow = "0 6px 16px rgba(250, 204, 21, 0.2)";
-                    }}
-                  >
-                    Enter Learning Portal
-                  </button>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-          {/* QUICK BENEFITS SECTION */}
-          <div
-            style={{
-              width: "100%",
-              maxWidth: 960,
-              padding: "0 20px",
-              marginTop: 48,
-              boxSizing: "border-box"
-            }}
-          >
-            <div
+            {/* HEADER SECTION (Reduced vertical space, Left Logo, Center Tagline, Right Segmented Selector) */}
+            <header
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-                gap: 20
-              }}
-            >
-              {[
-                {
-                  title: "Personalized Learning",
-                  desc: "AI adapts learning to age and skill level.",
-                  color: "#2EC4B6",
-                  bg: "rgba(46, 196, 182, 0.08)",
-                  icon: <Sparkles size={20} style={{ color: "#2EC4B6" }} />
-                },
-                {
-                  title: "Safe Learning Environment",
-                  desc: "Built-in digital safety and screen-time controls.",
-                  color: "#B8A0FF",
-                  bg: "rgba(184, 160, 255, 0.08)",
-                  icon: <ShieldCheck size={20} style={{ color: "#B8A0FF" }} />
-                },
-                {
-                  title: "Future-Ready Skills",
-                  desc: "AI, Cyber Safety, Design, Data Literacy, and more.",
-                  color: "#FFD166",
-                  bg: "rgba(255, 209, 102, 0.12)",
-                  icon: <Laptop size={20} style={{ color: "#FBBF24" }} />
-                }
-              ].map((b, i) => (
-                <div
-                  key={i}
-                  style={{
-                    background: "#FFFFFF",
-                    border: "1.5px solid #F1F5F9",
-                    borderRadius: 20,
-                    padding: 20,
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 14,
-                    boxShadow: "0 4px 12px rgba(148, 163, 184, 0.02)",
-                    transition: "transform 0.2s"
-                  }}
-                  className="hover:shadow-sm"
-                >
-                  <div
-                    style={{
-                      background: b.bg,
-                      borderRadius: "50%",
-                      width: 40,
-                      height: 40,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0
-                    }}
-                  >
-                    {b.icon}
-                  </div>
-                  <div>
-                    <h4
-                      style={{
-                        margin: "0 0 4px 0",
-                        fontFamily: F.display,
-                        fontSize: 14,
-                        fontWeight: 900,
-                        color: "#1E293B"
-                      }}
-                    >
-                      {b.title}
-                    </h4>
-                    <p
-                      style={{
-                        margin: 0,
-                        fontFamily: F.body,
-                        fontSize: 12.5,
-                        color: "#64748B",
-                        lineHeight: 1.4
-                      }}
-                    >
-                      {b.desc}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* HELP SECTION (Replaces old buttons, clean and modern) */}
-          <footer
-            style={{
-              width: "100%",
-              maxWidth: 960,
-              marginTop: 64,
-              padding: "24px 20px 0",
-              borderTop: "1px dashed #E2E8F0",
-              textAlign: "center",
-              boxSizing: "border-box"
-            }}
-          >
-            <div style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "center" }}>
-              <span
-                style={{
-                  fontFamily: F.display,
-                  fontSize: 13,
-                  fontWeight: 900,
-                  color: "#94A3B8",
-                  textTransform: "uppercase",
-                  letterSpacing: 2
-                }}
-              >
-                Need Help?
-              </span>
-              
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
-                <button
-                  onClick={() => {
-                    sfx.playTap();
-                    setShowSplash(true);
-                  }}
-                  style={{
-                    background: "#F1F5F9",
-                    border: "1px solid #E2E8F0",
-                    borderRadius: 12,
-                    padding: "8px 16px",
-                    color: "#475569",
-                    fontSize: 13,
-                    fontWeight: 700,
-                    fontFamily: F.body,
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    transition: "all 0.15s ease"
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "#E2E8F0";
-                    e.currentTarget.style.color = "#1E293B";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "#F1F5F9";
-                    e.currentTarget.style.color = "#475569";
-                  }}
-                >
-                  <Play size={14} style={{ color: "#2EC4B6" }} fill="#2EC4B6" />
-                  <span>Watch Introduction</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    sfx.playTap();
-                    setOnboardingInitialStep(1);
-                    setView("onboarding");
-                  }}
-                  style={{
-                    background: "#F1F5F9",
-                    border: "1px solid #E2E8F0",
-                    borderRadius: 12,
-                    padding: "8px 16px",
-                    color: "#475569",
-                    fontSize: 13,
-                    fontWeight: 700,
-                    fontFamily: F.body,
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    transition: "all 0.15s ease"
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "#E2E8F0";
-                    e.currentTarget.style.color = "#1E293B";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "#F1F5F9";
-                    e.currentTarget.style.color = "#475569";
-                  }}
-                >
-                  <Compass size={14} style={{ color: "#B8A0FF" }} />
-                  <span>Explore Platform Tour</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    sfx.playTap();
-                    setView("clatsAdmin");
-                  }}
-                  style={{
-                    background: "#0F172A",
-                    border: "1px solid #1E293B",
-                    borderRadius: 12,
-                    padding: "8px 16px",
-                    color: "#F8FAFC",
-                    fontSize: 13,
-                    fontWeight: 700,
-                    fontFamily: F.body,
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    transition: "all 0.15s ease"
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "#1E293B";
-                    e.currentTarget.style.color = "#2EC4B6";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "#0F172A";
-                    e.currentTarget.style.color = "#F8FAFC";
-                  }}
-                >
-                  <ShieldAlert size={14} style={{ color: "#2EC4B6" }} />
-                  <span>CLATS Admin Suite</span>
-                </button>
-              </div>
-            </div>
-          </footer>
-
-          {/* DYNAMIC UX IMPROVEMENT: "Who will be learning today?" MODAL */}
-          {learningModalOpen && (
-            <div
-              style={{
-                position: "fixed",
-                inset: 0,
-                background: "rgba(15, 23, 42, 0.45)",
-                backdropFilter: "blur(12px)",
+                width: "100%",
+                borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #E2E8F0",
+                background: isDark ? "#1E293B" : "#FFFFFF",
+                padding: "12px 24px",
+                boxSizing: "border-box",
                 display: "flex",
+                justifyContent: "space-between",
                 alignItems: "center",
-                justifyContent: "center",
-                zIndex: 100,
-                padding: 16
+                gap: 16,
+                zIndex: 30,
+                transition: "background 0.3s ease, border-color 0.3s ease"
               }}
-              className="animate-[fadeIn_0.2s_ease-out]"
             >
-              <div
-                style={{
-                  background: "#FFFFFF",
-                  border: "2px solid #FFD166",
-                  borderRadius: 28,
-                  width: "100%",
-                  maxWidth: 420,
-                  boxShadow: "0 20px 50px rgba(15, 23, 42, 0.15)",
-                  padding: 32,
-                  boxSizing: "border-box",
-                  position: "relative",
-                  textAlign: "center"
-                }}
-                className="animate-[scaleUp_0.2s_ease-out]"
-              >
-                {/* Close Button */}
-                <button
-                  onClick={() => {
-                    sfx.playTap();
-                    setLearningModalOpen(false);
-                  }}
-                  style={{
-                    position: "absolute",
-                    top: 18,
-                    right: 18,
-                    background: "#F1F5F9",
-                    border: "none",
-                    borderRadius: "50%",
-                    width: 32,
-                    height: 32,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                    color: "#64748B"
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "#E2E8F0")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "#F1F5F9")}
-                >
-                  <X size={16} />
-                </button>
+              {/* Left: CLATS Logo */}
+              <div>
+                <CLATSLogo height={32} />
+              </div>
 
-                {/* Stars Sparkle Icon */}
-                <div
-                  style={{
-                    background: "rgba(250, 204, 21, 0.12)",
-                    borderRadius: "50%",
-                    width: 60,
-                    height: 60,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    margin: "0 auto 16px"
-                  }}
-                >
-                  <Sparkles size={28} style={{ color: "#FBBF24" }} className="clats-sparkle" />
-                </div>
-
-                <h3
+              {/* Center: Tagline */}
+              <div className="hidden md:block" style={{ textAlign: "center" }}>
+                <span
                   style={{
                     fontFamily: F.display,
-                    fontSize: 24,
-                    fontWeight: 950,
-                    color: "#1E293B",
-                    margin: "0 0 8px 0"
+                    fontSize: 14,
+                    fontWeight: 800,
+                    color: "#2EC4B6",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em"
                   }}
                 >
-                  Who will be learning today?
-                </h3>
-                
-                <p
-                  style={{
-                    fontFamily: F.body,
-                    fontSize: 14.5,
-                    color: "#64748B",
-                    margin: "0 0 24px 0",
-                    lineHeight: 1.5
-                  }}
-                >
-                  Choose a learner identity card to launch your digital curriculum map space:
-                </p>
+                  Building Tomorrow's Tech Minds Today
+                </span>
+              </div>
 
-                {/* Touch Selection Cards */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                  <button
-                    onClick={() => {
-                      sfx.playCoin();
-                      setLearningModalOpen(false);
-                      setAuthBackView("welcome");
-                      setView("childLogin");
-                    }}
+              {/* Right: Modern Segmented Switch */}
+              <div
+                style={{
+                  display: "flex",
+                  background: isDark ? "rgba(255, 255, 255, 0.06)" : "#F1F5F9",
+                  border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #E2E8F0",
+                  padding: 3,
+                  borderRadius: 999,
+                  alignItems: "center",
+                  transition: "all 0.3s ease"
+                }}
+              >
+                {[
+                  { code: "en" as const, label: "EN" },
+                  { code: "ig" as const, label: "IG" },
+                  { code: "yo" as const, label: "YO" }
+                ].map((l) => {
+                  const isActive = lang === l.code;
+                  return (
+                    <button
+                      key={l.code}
+                      onClick={() => {
+                        sfx.playTap();
+                        handleLanguageChange(l.code);
+                      }}
+                      style={{
+                        padding: "6px 14px",
+                        borderRadius: 999,
+                        fontSize: 12,
+                        fontWeight: 800,
+                        border: "none",
+                        background: isActive ? (isDark ? "#2EC4B6" : "#FFFFFF") : "transparent",
+                        color: isActive ? (isDark ? "#FFFFFF" : "#2EC4B6") : (isDark ? "#94A3B8" : "#64748B"),
+                        cursor: "pointer",
+                        boxShadow: isActive ? "0 2px 8px rgba(46, 196, 182, 0.15)" : "none",
+                        transition: "all 0.2s ease"
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isActive) e.currentTarget.style.color = "#2EC4B6";
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isActive) e.currentTarget.style.color = isDark ? "#94A3B8" : "#64748B";
+                      }}
+                    >
+                      {l.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </header>
+
+            {/* HERO CONTAINER */}
+            <div
+              style={{
+                position: "relative",
+                width: "100%",
+                maxWidth: 960,
+                textAlign: "center",
+                marginTop: 48,
+                marginBottom: 40,
+                padding: "0 20px",
+                boxSizing: "border-box"
+              }}
+            >
+              {/* FLOATING DECORATIONS */}
+              <div className="absolute top-[-20px] left-[5%] clats-float-1 pointer-events-none hidden sm:flex items-center gap-1.5 bg-yellow-100 px-3 py-1.5 rounded-full border border-yellow-200 shadow-sm text-xs font-bold text-yellow-600">
+                <Star size={14} fill="#FFD166" color="#FFD166" />
+                <span>STARS</span>
+              </div>
+              <div className="absolute top-[-35px] right-[8%] clats-float-2 pointer-events-none hidden sm:flex items-center gap-1.5 bg-purple-100 px-3 py-1.5 rounded-full border border-purple-200 shadow-sm text-xs font-bold text-purple-600">
+                <BookOpen size={14} color="#B8A0FF" />
+                <span>BOOKS</span>
+              </div>
+              <div className="absolute bottom-[-10px] left-[10%] clats-float-3 pointer-events-none hidden sm:flex items-center gap-1.5 bg-teal-100 px-3 py-1.5 rounded-full border border-teal-200 shadow-sm text-xs font-bold text-teal-600">
+                <Lightbulb size={14} color="#2EC4B6" />
+                <span>IDEAS</span>
+              </div>
+              <div className="absolute bottom-[-20px] right-[12%] clats-float-1 pointer-events-none hidden sm:flex items-center gap-1.5 bg-red-100 px-3 py-1.5 rounded-full border border-red-200 shadow-sm text-xs font-bold text-red-500">
+                <Rocket size={14} className="transform rotate-45" />
+                <span>ROCKETS</span>
+              </div>
+
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 10, justifyContent: "center", marginBottom: 12 }}>
+                <div
+                  style={{
+                    background: "linear-gradient(135deg, rgba(46,196,182,0.15), rgba(184,160,255,0.15))",
+                    padding: "6px 14px",
+                    borderRadius: 99,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6
+                  }}
+                >
+                  <Sparkles size={14} style={{ color: "#2EC4B6" }} className="clats-sparkle" />
+                  <span style={{ fontSize: 11, fontWeight: 900, fontFamily: F.mono, color: "#2EC4B6", letterSpacing: 1.2 }}>
+                    WELCOME TO THE ADVENTURE
+                  </span>
+                </div>
+              </div>
+
+              <h1
+                style={{
+                  fontFamily: F.display,
+                  fontSize: 42,
+                  fontWeight: 950,
+                  color: isDark ? "#FFFFFF" : "#1E293B",
+                  lineHeight: 1.1,
+                  margin: "0 0 12px",
+                  letterSpacing: "-0.03em"
+                }}
+              >
+                Welcome to CLATS
+              </h1>
+              <p
+                style={{
+                  fontFamily: F.body,
+                  fontSize: 16,
+                  fontWeight: 600,
+                  color: "#2EC4B6",
+                  margin: "0 0 14px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em"
+                }}
+              >
+                Building tomorrow's tech minds today.
+              </p>
+              <p
+                style={{
+                  fontFamily: F.body,
+                  fontSize: 15,
+                  fontWeight: 500,
+                  color: isDark ? "#94A3B8" : "#64748B",
+                  maxWidth: 580,
+                  margin: "0 auto",
+                  lineHeight: 1.5
+                }}
+              >
+                Choose how you would like to enter the CLATS learning experience.
+              </p>
+            </div>
+
+            {/* MAIN PORTAL OPTIONS (2 columns side-by-side, responsive layout) */}
+            <div
+              style={{
+                width: "100%",
+                maxWidth: 960,
+                padding: "0 20px",
+                boxSizing: "border-box",
+                zIndex: 10
+              }}
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-6 lg:gap-10">
+                
+                {/* CARD 1: PARENT PORTAL */}
+                <div
+                  style={{
+                    background: isDark ? "#1E293B" : "#FFFFFF",
+                    borderRadius: 24,
+                    border: isDark ? "2px solid rgba(255, 255, 255, 0.08)" : "2px solid #E2E8F0",
+                    padding: 32,
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    boxShadow: isDark ? "0 10px 30px rgba(0, 0, 0, 0.2)" : "0 10px 25px rgba(148, 163, 184, 0.05)",
+                    transition: "all 0.25s ease, background 0.3s ease, border-color 0.3s ease",
+                    boxSizing: "border-box"
+                  }}
+                  className="hover:shadow-[0_15px_30px_rgba(184,160,255,0.08)] hover:scale-[1.01] hover:border-[#B8A0FF]/40"
+                >
+                  <div>
+                    {/* Decorative Illustration */}
+                    <div
+                      style={{
+                        background: isDark ? "rgba(255, 255, 255, 0.03)" : "linear-gradient(135deg, rgba(184, 160, 255, 0.08) 0%, rgba(46, 196, 182, 0.08) 100%)",
+                        borderRadius: 20,
+                        height: 160,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        marginBottom: 24,
+                        overflow: "hidden",
+                        position: "relative",
+                        border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #E2E8F0"
+                      }}
+                    >
+                      {/* Modern Visual mock of parent monitoring progress */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 16, width: "90%", zIndex: 2 }}>
+                        <div
+                          style={{
+                            background: "#B8A0FF",
+                            borderRadius: "50%",
+                            width: 52,
+                            height: 52,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            boxShadow: "0 8px 16px rgba(184,160,255,0.25)"
+                          }}
+                        >
+                          <span style={{ fontSize: 24 }}>👩‍💻</span>
+                        </div>
+                        
+                        {/* Interactive connector with active pulsing bar */}
+                        <div style={{ flex: 1, height: 4, position: "relative", background: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(148, 163, 184, 0.15)", borderRadius: 2 }}>
+                          <div style={{ position: "absolute", left: "45%", top: -4, width: 12, height: 12, borderRadius: "50%", background: "#2EC4B6", animation: "ping 1.5s infinite" }} />
+                          <div style={{ position: "absolute", right: 0, top: -4, width: 10, height: 10, borderRadius: "50%", background: isDark ? "#475569" : "#CBD5E1" }} />
+                        </div>
+
+                        {/* Right Child Circle with progress metrics overlay */}
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6, background: isDark ? "#0F172A" : "#FFFFFF", padding: "10px 14px", borderRadius: 16, border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid #E2E8F0", boxShadow: "0 4px 12px rgba(0,0,0,0.03)" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ fontSize: 16 }}>👦</span>
+                            <span style={{ fontSize: 10, fontFamily: F.mono, fontWeight: 800, color: isDark ? "#94A3B8" : "#64748B" }}>KOBE</span>
+                            <div style={{ background: "#4ADE80", width: 6, height: 6, borderRadius: "50%" }} />
+                          </div>
+                          {/* Screen limit mockup bar */}
+                          <div style={{ width: 100, height: 6, background: isDark ? "#1E293B" : "#E2E8F0", borderRadius: 3, overflow: "hidden" }}>
+                            <div style={{ width: "70%", height: "100%", background: "#2EC4B6" }} />
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 8.5, fontFamily: F.mono, fontWeight: 800, color: "#10B981" }}>
+                            <span>SCREEN TIME</span>
+                            <span>70%</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <h3
+                      style={{
+                        fontFamily: F.display,
+                        fontSize: 22,
+                        fontWeight: 900,
+                        color: isDark ? "#F8FAFC" : "#1E293B",
+                        marginBottom: 8,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8
+                      }}
+                    >
+                      <span>🛡️</span>
+                      Parent Portal
+                    </h3>
+                    
+                    <p
+                      style={{
+                        fontFamily: F.body,
+                        fontSize: 14,
+                        color: isDark ? "#94A3B8" : "#64748B",
+                        lineHeight: 1.6,
+                        marginBottom: 28,
+                        minHeight: 64
+                      }}
+                    >
+                      Create child profiles, manage screen-time settings, track progress, and support your child's learning journey.
+                    </p>
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    <button
+                      onClick={() => {
+                        sfx.playTap();
+                        setAuthBackView("welcome");
+                        setAuthMode("register");
+                        setView("parentAuth");
+                      }}
+                      style={{
+                        background: "linear-gradient(135deg, #2EC4B6 0%, #20A599 100%)",
+                        color: "#FFFFFF",
+                        border: "none",
+                        borderRadius: 16,
+                        padding: "14px 20px",
+                        fontSize: 14,
+                        fontWeight: 800,
+                        fontFamily: F.display,
+                        cursor: "pointer",
+                        width: "100%",
+                        boxShadow: "0 6px 16px rgba(46, 196, 182, 0.2)",
+                        transition: "all 0.2s ease"
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = "scale(1.02)";
+                        e.currentTarget.style.boxShadow = "0 8px 20px rgba(46, 196, 182, 0.3)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = "";
+                        e.currentTarget.style.boxShadow = "0 6px 16px rgba(46, 196, 182, 0.2)";
+                      }}
+                    >
+                      Create Parent Account
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        sfx.playTap();
+                        setAuthBackView("welcome");
+                        setAuthMode("login");
+                        setView("parentAuth");
+                      }}
+                      style={{
+                        background: isDark ? "#1E293B" : "#FFFFFF",
+                        border: "2px solid #B8A0FF",
+                        color: "#B8A0FF",
+                        borderRadius: 16,
+                        padding: "12px 20px",
+                        fontSize: 14,
+                        fontWeight: 800,
+                        fontFamily: F.display,
+                        cursor: "pointer",
+                        width: "100%",
+                        transition: "all 0.2s ease"
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = isDark ? "rgba(184, 160, 255, 0.15)" : "rgba(184, 160, 255, 0.05)";
+                        e.currentTarget.style.transform = "scale(1.02)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = isDark ? "#1E293B" : "#FFFFFF";
+                        e.currentTarget.style.transform = "";
+                      }}
+                    >
+                      Sign In
+                    </button>
+                  </div>
+                </div>
+
+                {/* CARD 2: CHILD LEARNING PORTAL */}
+                <div
+                  style={{
+                    background: isDark ? "#1E293B" : "#FFFFFF",
+                    borderRadius: 24,
+                    border: isDark ? "2px solid rgba(255, 255, 255, 0.08)" : "2px solid #E2E8F0",
+                    padding: 32,
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    boxShadow: isDark ? "0 10px 30px rgba(0, 0, 0, 0.2)" : "0 10px 25px rgba(148, 163, 184, 0.05)",
+                    transition: "all 0.25s ease, background 0.3s ease, border-color 0.3s ease",
+                    boxSizing: "border-box"
+                  }}
+                  className="hover:shadow-[0_15px_30px_rgba(255,209,102,0.12)] hover:scale-[1.01] hover:border-[#FFD166]/60"
+                >
+                  <div>
+                    {/* Decorative Illustration */}
+                    <div
+                      style={{
+                        background: isDark ? "rgba(255, 255, 255, 0.03)" : "linear-gradient(135deg, rgba(255, 209, 102, 0.12) 0%, rgba(46, 196, 182, 0.08) 100%)",
+                        borderRadius: 20,
+                        height: 160,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        marginBottom: 24,
+                        overflow: "hidden",
+                        position: "relative",
+                        border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #E2E8F0"
+                      }}
+                    >
+                      {/* Floating Mascots with friendly text bubble */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 12, zIndex: 2 }}>
+                        <div className="clats-float-1" style={{ transformOrigin: "bottom center" }}>
+                          <MascotImage character="kobe" height={68} />
+                        </div>
+                        
+                        {/* Interactive speech tag styled like Duolingo */}
+                        <div
+                          style={{
+                            background: isDark ? "#0F172A" : "#FFFFFF",
+                            border: isDark ? "1.5px solid rgba(255,255,255,0.15)" : "1.5px solid #FFD166",
+                            borderRadius: 14,
+                            padding: "6px 12px",
+                            fontSize: 11,
+                            fontWeight: 800,
+                            color: isDark ? "#F8FAFC" : "#1E293B",
+                            position: "relative",
+                            boxShadow: "0 4px 10px rgba(255,209,102,0.15)",
+                            maxWidth: 100,
+                            textAlign: "center"
+                          }}
+                          className="clats-sparkle"
+                        >
+                          <span style={{ fontFamily: F.display }}>LEARN & PLAY! ✨</span>
+                          <div
+                            style={{
+                              position: "absolute",
+                              left: -5,
+                              top: "50%",
+                              transform: "translateY(-50%) rotate(45deg)",
+                              background: isDark ? "#0F172A" : "#FFFFFF",
+                              borderLeft: isDark ? "1.5px solid rgba(255,255,255,0.15)" : "1.5px solid #FFD166",
+                              borderBottom: isDark ? "1.5px solid rgba(255,255,255,0.15)" : "1.5px solid #FFD166",
+                              width: 8,
+                              height: 8
+                            }}
+                          />
+                        </div>
+
+                        <div className="clats-float-2" style={{ transformOrigin: "bottom center" }}>
+                          <MascotImage character="chibi" height={72} />
+                        </div>
+                      </div>
+                    </div>
+
+                    <h3
+                      style={{
+                        fontFamily: F.display,
+                        fontSize: 22,
+                        fontWeight: 900,
+                        color: isDark ? "#F8FAFC" : "#1E293B",
+                        marginBottom: 8,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8
+                      }}
+                    >
+                      <span>🚀</span>
+                      Child Learning Portal
+                    </h3>
+                    
+                    <p
+                      style={{
+                        fontFamily: F.body,
+                        fontSize: 14,
+                        color: isDark ? "#94A3B8" : "#64748B",
+                        lineHeight: 1.6,
+                        marginBottom: 28,
+                        minHeight: 64
+                      }}
+                    >
+                      Continue your learning adventure, complete lessons, earn badges, and unlock new levels.
+                    </p>
+                  </div>
+
+                  <div>
+                    <button
+                      onClick={() => {
+                        sfx.playCoin();
+                        setLearningModalOpen(true);
+                      }}
+                      style={{
+                        background: "linear-gradient(135deg, #FFD166 0%, #FBBF24 100%)",
+                        color: "#1E293B",
+                        border: "none",
+                        borderRadius: 16,
+                        padding: "16px 20px",
+                        fontSize: 15,
+                        fontWeight: 900,
+                        fontFamily: F.display,
+                        cursor: "pointer",
+                        width: "100%",
+                        boxShadow: "0 6px 16px rgba(250, 204, 21, 0.2)",
+                        transition: "all 0.2s ease"
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = "scale(1.02)";
+                        e.currentTarget.style.boxShadow = "0 8px 22px rgba(250, 204, 21, 0.35)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = "";
+                        e.currentTarget.style.boxShadow = "0 6px 16px rgba(250, 204, 21, 0.2)";
+                      }}
+                    >
+                      Enter Learning Portal
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            {/* QUICK BENEFITS SECTION */}
+            <div
+              style={{
+                width: "100%",
+                maxWidth: 960,
+                padding: "0 20px",
+                marginTop: 48,
+                boxSizing: "border-box"
+              }}
+            >
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                  gap: 20
+                }}
+              >
+                {[
+                  {
+                    title: "Personalized Learning",
+                    desc: "AI adapts learning to age and skill level.",
+                    color: "#2EC4B6",
+                    bg: "rgba(46, 196, 182, 0.08)",
+                    icon: <Sparkles size={20} style={{ color: "#2EC4B6" }} />
+                  },
+                  {
+                    title: "Safe Learning Environment",
+                    desc: "Built-in digital safety and screen-time controls.",
+                    color: "#B8A0FF",
+                    bg: "rgba(184, 160, 255, 0.08)",
+                    icon: <ShieldCheck size={20} style={{ color: "#B8A0FF" }} />
+                  },
+                  {
+                    title: "Future-Ready Skills",
+                    desc: "AI, Cyber Safety, Design, Data Literacy, and more.",
+                    color: "#FFD166",
+                    bg: "rgba(255, 209, 102, 0.12)",
+                    icon: <Laptop size={20} style={{ color: "#FBBF24" }} />
+                  }
+                ].map((b, i) => (
+                  <div
+                    key={i}
                     style={{
                       background: "#FFFFFF",
-                      border: "2px solid #E2E8F0",
-                      borderRadius: 18,
-                      padding: "14px 18px",
+                      border: "1.5px solid #F1F5F9",
+                      borderRadius: 20,
+                      padding: 20,
                       display: "flex",
-                      alignItems: "center",
-                      gap: 16,
-                      width: "100%",
-                      cursor: "pointer",
-                      transition: "all 0.2s ease",
-                      textAlign: "left"
+                      alignItems: "flex-start",
+                      gap: 14,
+                      boxShadow: "0 4px 12px rgba(148, 163, 184, 0.02)",
+                      transition: "transform 0.2s"
                     }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = "#2EC4B6";
-                      e.currentTarget.style.background = "rgba(46, 196, 182, 0.05)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = "#E2E8F0";
-                      e.currentTarget.style.background = "#FFFFFF";
-                    }}
+                    className="hover:shadow-sm"
                   >
-                    <div style={{ fontSize: 28, background: "rgba(46,196,182,0.12)", width: 44, height: 44, borderRadius: 12, display: "flex", alignItems: "center", justify: "center", justifyContent: "center" }}>
-                      👦
+                    <div
+                      style={{
+                        background: b.bg,
+                        borderRadius: "50%",
+                        width: 40,
+                        height: 40,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0
+                      }}
+                    >
+                      {b.icon}
                     </div>
                     <div>
-                      <div style={{ fontFamily: F.display, fontSize: 16, fontWeight: 900, color: "#1E293B" }}>
-                        Child Learner
-                      </div>
-                      <div style={{ fontFamily: F.body, fontSize: 12, color: "#64748B" }}>
-                        Enter boy explorer environment
-                      </div>
+                      <h4
+                        style={{
+                          margin: "0 0 4px 0",
+                          fontFamily: F.display,
+                          fontSize: 14,
+                          fontWeight: 900,
+                          color: "#1E293B"
+                        }}
+                      >
+                        {b.title}
+                      </h4>
+                      <p
+                        style={{
+                          margin: 0,
+                          fontFamily: F.body,
+                          fontSize: 12.5,
+                          color: "#64748B",
+                          lineHeight: 1.4
+                        }}
+                      >
+                        {b.desc}
+                      </p>
                     </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* HELP SECTION (Replaces old buttons, clean and modern) */}
+            <footer
+              style={{
+                width: "100%",
+                maxWidth: 960,
+                marginTop: 64,
+                padding: "24px 20px 0",
+                borderTop: "1px dashed #E2E8F0",
+                textAlign: "center",
+                boxSizing: "border-box"
+              }}
+            >
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "center" }}>
+                <span
+                  style={{
+                    fontFamily: F.display,
+                    fontSize: 13,
+                    fontWeight: 900,
+                    color: "#94A3B8",
+                    textTransform: "uppercase",
+                    letterSpacing: 2
+                  }}
+                >
+                  Need Help?
+                </span>
+                
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
+                  <button
+                    onClick={() => {
+                      sfx.playTap();
+                      setShowSplash(true);
+                    }}
+                    style={{
+                      background: "#F1F5F9",
+                      border: "1px solid #E2E8F0",
+                      borderRadius: 12,
+                      padding: "8px 16px",
+                      color: "#475569",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      fontFamily: F.body,
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      transition: "all 0.15s ease"
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#E2E8F0";
+                      e.currentTarget.style.color = "#1E293B";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "#F1F5F9";
+                      e.currentTarget.style.color = "#475569";
+                    }}
+                  >
+                    <Play size={14} style={{ color: "#2EC4B6" }} fill="#2EC4B6" />
+                    <span>Watch Introduction</span>
                   </button>
 
                   <button
                     onClick={() => {
-                      sfx.playCoin();
-                      setLearningModalOpen(false);
-                      setAuthBackView("welcome");
-                      setView("childLogin");
+                      sfx.playTap();
+                      setOnboardingInitialStep(1);
+                      setView("onboarding");
                     }}
                     style={{
-                      background: "#FFFFFF",
-                      border: "2px solid #E2E8F0",
-                      borderRadius: 18,
-                      padding: "14px 18px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 16,
-                      width: "100%",
+                      background: "#F1F5F9",
+                      border: "1px solid #E2E8F0",
+                      borderRadius: 12,
+                      padding: "8px 16px",
+                      color: "#475569",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      fontFamily: F.body,
                       cursor: "pointer",
-                      transition: "all 0.2s ease",
-                      textAlign: "left"
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      transition: "all 0.15s ease"
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = "#B8A0FF";
-                      e.currentTarget.style.background = "rgba(184, 160, 255, 0.05)";
+                      e.currentTarget.style.background = "#E2E8F0";
+                      e.currentTarget.style.color = "#1E293B";
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = "#E2E8F0";
-                      e.currentTarget.style.background = "#FFFFFF";
+                      e.currentTarget.style.background = "#F1F5F9";
+                      e.currentTarget.style.color = "#475569";
                     }}
                   >
-                    <div style={{ fontSize: 28, background: "rgba(184,160,255,0.12)", width: 44, height: 44, borderRadius: 12, display: "flex", alignItems: "center", justify: "center", justifyContent: "center" }}>
-                      👧
-                    </div>
-                    <div>
-                      <div style={{ fontFamily: F.display, fontSize: 16, fontWeight: 900, color: "#1E293B" }}>
-                        Child Learner
-                      </div>
-                      <div style={{ fontFamily: F.body, fontSize: 12, color: "#64748B" }}>
-                        Enter girl explorer environment
-                      </div>
-                    </div>
+                    <Compass size={14} style={{ color: "#B8A0FF" }} />
+                    <span>Explore Platform Tour</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      sfx.playTap();
+                      setView("clatsAdmin");
+                    }}
+                    style={{
+                      background: "#0F172A",
+                      border: "1px solid #1E293B",
+                      borderRadius: 12,
+                      padding: "8px 16px",
+                      color: "#F8FAFC",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      fontFamily: F.body,
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      transition: "all 0.15s ease"
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#1E293B";
+                      e.currentTarget.style.color = "#2EC4B6";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "#0F172A";
+                      e.currentTarget.style.color = "#F8FAFC";
+                    }}
+                  >
+                    <ShieldAlert size={14} style={{ color: "#2EC4B6" }} />
+                    <span>CLATS Admin Suite</span>
                   </button>
                 </div>
               </div>
-            </div>
-          )}
+            </footer>
 
-        </div>
-      )}
+            {/* DYNAMIC UX IMPROVEMENT: "Who will be learning today?" MODAL */}
+            {learningModalOpen && (
+              <div
+                style={{
+                  position: "fixed",
+                  inset: 0,
+                  background: "rgba(15, 23, 42, 0.45)",
+                  backdropFilter: "blur(12px)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  zIndex: 100,
+                  padding: 16
+                }}
+                className="animate-[fadeIn_0.2s_ease-out]"
+              >
+                <div
+                  style={{
+                    background: "#FFFFFF",
+                    border: "2px solid #FFD166",
+                    borderRadius: 28,
+                    width: "100%",
+                    maxWidth: 420,
+                    boxShadow: "0 20px 50px rgba(15, 23, 42, 0.15)",
+                    padding: 32,
+                    boxSizing: "border-box",
+                    position: "relative",
+                    textAlign: "center"
+                  }}
+                  className="animate-[scaleUp_0.2s_ease-out]"
+                >
+                  {/* Close Button */}
+                  <button
+                    onClick={() => {
+                      sfx.playTap();
+                      setLearningModalOpen(false);
+                    }}
+                    style={{
+                      position: "absolute",
+                      top: 18,
+                      right: 18,
+                      background: "#F1F5F9",
+                      border: "none",
+                      borderRadius: "50%",
+                      width: 32,
+                      height: 32,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      color: "#64748B"
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "#E2E8F0")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "#F1F5F9")}
+                  >
+                    <X size={16} />
+                  </button>
 
-      {/* 2. PARENT AUTHENTICATION WINDOW */}
-      {view === "parentAuth" && (
-        <ParentAuthScreen
-          mode={authMode}
-          lang={lang}
-          theme={theme}
-          onAuth={handleParentAuth}
-          onBack={() => {
-            if (authBackView === "onboarding") {
-              setOnboardingInitialStep(4);
-              setView("onboarding");
-            } else if (authBackView === "childLogin") {
-              setView("childLogin");
-            } else {
-              setView("welcome");
-            }
-          }}
-        />
-      )}
+                  {/* Stars Sparkle Icon */}
+                  <div
+                    style={{
+                      background: "rgba(250, 204, 21, 0.12)",
+                      borderRadius: "50%",
+                      width: 60,
+                      height: 60,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      margin: "0 auto 16px"
+                    }}
+                  >
+                    <Sparkles size={28} style={{ color: "#FBBF24" }} className="clats-sparkle" />
+                  </div>
 
-      {/* CHILD LOGIN SECURED WINDOW */}
-      {view === "childLogin" && (
-        <ChildLoginScreen
-          lang={lang}
-          theme={theme}
-          onLoginSuccess={(c) => {
-            activateChildMode(c);
-          }}
-          onNavigateParentRegister={() => {
-            setAuthBackView("childLogin");
-            setAuthMode("register");
-            setView("parentAuth");
-          }}
-          onBack={() => {
-            if (authBackView === "onboarding") {
-              setOnboardingInitialStep(4);
-              setView("onboarding");
-            } else {
-              setView("welcome");
-            }
-          }}
-        />
-      )}
+                  <h3
+                    style={{
+                      fontFamily: F.display,
+                      fontSize: 24,
+                      fontWeight: 950,
+                      color: "#1E293B",
+                      margin: "0 0 8px 0"
+                    }}
+                  >
+                    Who will be learning today?
+                  </h3>
+                  
+                  <p
+                    style={{
+                      fontFamily: F.body,
+                      fontSize: 14.5,
+                      color: "#64748B",
+                      margin: "0 0 24px 0",
+                      lineHeight: 1.5
+                    }}
+                  >
+                    Choose a learner identity card to launch your digital curriculum map space:
+                  </p>
 
-      {/* 3. PARENT MAIN GATEWAY DASHBOARD */}
-      {view === "parentDashboard" && parent && (
-        <ParentDashboard
-          parent={parent}
-          dbConnected={dbConnected}
-          isSyncing={isSyncing}
-          lang={lang}
-          theme={theme}
-          onToggleTheme={() => {
-            const next = theme === "light" ? "dark" : "light";
-            setTheme(next);
-            localStorage.setItem("clats_theme", next);
-          }}
-          onLanguageChange={handleLanguageChange}
-          onEnterChildMode={(c) => {
-            activateChildMode(c);
-          }}
-          onNavigate={(scr) => setView(scr)}
-          onLogout={handleLogoutParent}
-          onRefreshParent={(fresh) => {
-            setParent(fresh);
-            if (fresh) {
-              syncToSupabase(fresh);
-            }
-          }}
-        />
-      )}
+                  {/* Touch Selection Cards */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                    <button
+                      onClick={() => {
+                        sfx.playCoin();
+                        setLearningModalOpen(false);
+                        setAuthBackView("welcome");
+                        setView("childLogin");
+                      }}
+                      style={{
+                        background: "#FFFFFF",
+                        border: "2px solid #E2E8F0",
+                        borderRadius: 18,
+                        padding: "14px 18px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 16,
+                        width: "100%",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                        textAlign: "left"
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = "#2EC4B6";
+                        e.currentTarget.style.background = "rgba(46, 196, 182, 0.05)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = "#E2E8F0";
+                        e.currentTarget.style.background = "#FFFFFF";
+                      }}
+                    >
+                      <div style={{ fontSize: 28, background: "rgba(46,196,182,0.12)", width: 44, height: 44, borderRadius: 12, display: "flex", alignItems: "center", justify: "center", justifyContent: "center" }}>
+                        👦
+                      </div>
+                      <div>
+                        <div style={{ fontFamily: F.display, fontSize: 16, fontWeight: 900, color: "#1E293B" }}>
+                          Child Learner
+                        </div>
+                        <div style={{ fontFamily: F.body, fontSize: 12, color: "#64748B" }}>
+                          Enter boy explorer environment
+                        </div>
+                      </div>
+                    </button>
 
-      {/* 4. DYNAMIC ENROLL CHILD PROFILE PROCESS */}
-      {view === "addChild" && parent && (
-        <ChildSetupScreen
-          parentEmail={parent.email}
-          lang={lang}
-          theme={theme}
-          onToggleTheme={() => {
-            const next = theme === "light" ? "dark" : "light";
-            setTheme(next);
-            localStorage.setItem("clats_theme", next);
-          }}
-          onDone={async () => {
-            try {
-              const fresh = await pullParentFromSupabase(parent.email);
-              if (fresh) {
-                setParent(fresh);
+                    <button
+                      onClick={() => {
+                        sfx.playCoin();
+                        setLearningModalOpen(false);
+                        setAuthBackView("welcome");
+                        setView("childLogin");
+                      }}
+                      style={{
+                        background: "#FFFFFF",
+                        border: "2px solid #E2E8F0",
+                        borderRadius: 18,
+                        padding: "14px 18px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 16,
+                        width: "100%",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                        textAlign: "left"
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = "#B8A0FF";
+                        e.currentTarget.style.background = "rgba(184, 160, 255, 0.05)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = "#E2E8F0";
+                        e.currentTarget.style.background = "#FFFFFF";
+                      }}
+                    >
+                      <div style={{ fontSize: 28, background: "rgba(184,160,255,0.12)", width: 44, height: 44, borderRadius: 12, display: "flex", alignItems: "center", justify: "center", justifyContent: "center" }}>
+                        👧
+                      </div>
+                      <div>
+                        <div style={{ fontFamily: F.display, fontSize: 16, fontWeight: 900, color: "#1E293B" }}>
+                          Child Learner
+                        </div>
+                        <div style={{ fontFamily: F.body, fontSize: 12, color: "#64748B" }}>
+                          Enter girl explorer environment
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </div>
+        )}
+
+        {/* 2. PARENT AUTHENTICATION WINDOW */}
+        {view === "parentAuth" && (
+          <ParentAuthScreen
+            mode={authMode}
+            lang={lang}
+            theme={theme}
+            onAuth={handleParentAuth}
+            onBack={() => {
+              if (authBackView === "onboarding") {
+                setOnboardingInitialStep(4);
+                setView("onboarding");
+              } else if (authBackView === "childLogin") {
+                setView("childLogin");
+              } else {
+                setView("welcome");
               }
-            } catch (e) {
-              console.warn("Could not sync fresh parent after child setup", e);
-            }
-            setView("parentDashboard");
-          }}
-          onBack={() => setView("parentDashboard")}
-        />
-      )}
+            }}
+          />
+        )}
 
-      {/* 5. SETTINGS AND TIME LIMITS MODULES */}
-      {view === "settings" && parent && (
-        <SettingsScreen
-          parent={parent}
-          lang={lang}
-          theme={theme}
-          onToggleTheme={() => {
-            const next = theme === "light" ? "dark" : "light";
-            setTheme(next);
-            localStorage.setItem("clats_theme", next);
-          }}
-          onBack={() => setView("parentDashboard")}
-          onParentRefresh={(fresh) => {
-            setParent(fresh);
-            if (fresh) {
-              syncToSupabase(fresh);
-            }
-          }}
-          onLanguageChange={handleLanguageChange}
-          onTriggerParentTour={() => {
-            setView("parentDashboard");
-            setActiveTour("parent");
-          }}
-          onTriggerChildTour={() => {
-            if (parent && parent.children && parent.children.length > 0) {
-              setActiveChild(parent.children[0]);
-              setView("childApp");
-              setActiveTour("child");
-            } else {
-              alert("Please enroll at least one child profile first in order to replay the Student Tour!");
-            }
-          }}
-        />
-      )}
+        {/* CHILD LOGIN SECURED WINDOW */}
+        {view === "childLogin" && (
+          <ChildLoginScreen
+            lang={lang}
+            theme={theme}
+            onLoginSuccess={(c) => {
+              activateChildMode(c);
+            }}
+            onNavigateParentRegister={() => {
+              setAuthBackView("childLogin");
+              setAuthMode("register");
+              setView("parentAuth");
+            }}
+            onBack={() => {
+              if (authBackView === "onboarding") {
+                setOnboardingInitialStep(4);
+                setView("onboarding");
+              } else {
+                setView("welcome");
+              }
+            }}
+          />
+        )}
 
-      {/* 6. PARENTS COMMUNITY BOARD */}
-      {view === "community" && (
-        <ParentCommunity theme={theme} lang={lang} onBack={() => setView("parentDashboard")} />
-      )}
+        {/* 3. PARENT MAIN GATEWAY DASHBOARD */}
+        {view === "parentDashboard" && parent && (
+          <ParentDashboard
+            parent={parent}
+            dbConnected={dbConnected}
+            isSyncing={isSyncing}
+            lang={lang}
+            theme={theme}
+            onToggleTheme={() => {
+              const next = theme === "light" ? "dark" : "light";
+              setTheme(next);
+              localStorage.setItem("clats_theme", next);
+            }}
+            onLanguageChange={handleLanguageChange}
+            onEnterChildMode={(c) => {
+              activateChildMode(c);
+            }}
+            onNavigate={(scr) => setView(scr)}
+            onLogout={handleLogoutParent}
+            onRefreshParent={(fresh) => {
+              setParent(fresh);
+              if (fresh) {
+                syncToSupabase(fresh);
+              }
+            }}
+          />
+        )}
 
-      {/* 7. FULL CHILDREN PORTAL GATEWAY CHASSIS */}
-      {view === "childApp" && activeChild && (
-        <ChildApp
-          child={activeChild}
-          parent={parent}
-          lang={lang}
-          theme={theme}
-          onToggleTheme={() => {
-            const next = theme === "light" ? "dark" : "light";
-            setTheme(next);
-            localStorage.setItem("clats_theme", next);
-          }}
-          activeTourTab={activeTourTab}
-          onExit={() => {
-            setActiveChild(null);
-            if (parent) {
-              pullParentFromSupabase(parent.email).then(fresh => {
-                if (fresh) setParent(fresh);
-              }).catch(e => console.error(e));
+        {/* 4. DYNAMIC ENROLL CHILD PROFILE PROCESS */}
+        {view === "addChild" && parent && (
+          <ChildSetupScreen
+            parentEmail={parent.email}
+            lang={lang}
+            theme={theme}
+            onToggleTheme={() => {
+              const next = theme === "light" ? "dark" : "light";
+              setTheme(next);
+              localStorage.setItem("clats_theme", next);
+            }}
+            onDone={async () => {
+              try {
+                const fresh = await pullParentFromSupabase(parent.email);
+                if (fresh) {
+                  setParent(fresh);
+                }
+              } catch (e) {
+                console.warn("Could not sync fresh parent after child setup", e);
+              }
               setView("parentDashboard");
-            } else {
-              setView("welcome");
-            }
-          }}
-          onUpdateChild={(freshChild) => {
-            setActiveChild(freshChild);
-            if (parent) {
-              const freshParent = {
-                ...parent,
-                children: (parent.children || []).map(c => c.id === freshChild.id ? freshChild : c)
-              };
-              setParent(freshParent);
-            }
-          }}
-        />
-      )}
+            }}
+            onBack={() => setView("parentDashboard")}
+          />
+        )}
 
-      {/* CLATS ADMIN DASHBOARD OPERATING SYSTEM PORTAL */}
-      {view === "clatsAdmin" && (
-        <AdminDashboard
-          lang={lang}
-          theme={theme}
-          onBackToPortal={() => setView("welcome")}
-        />
-      )}
+        {/* 5. SETTINGS AND TIME LIMITS MODULES */}
+        {view === "settings" && parent && (
+          <SettingsScreen
+            parent={parent}
+            lang={lang}
+            theme={theme}
+            onToggleTheme={() => {
+              const next = theme === "light" ? "dark" : "light";
+              setTheme(next);
+              localStorage.setItem("clats_theme", next);
+            }}
+            onBack={() => setView("parentDashboard")}
+            onParentRefresh={(fresh) => {
+              setParent(fresh);
+              if (fresh) {
+                syncToSupabase(fresh);
+              }
+            }}
+            onLanguageChange={handleLanguageChange}
+            onTriggerParentTour={() => {
+              setView("parentDashboard");
+              setActiveTour("parent");
+            }}
+            onTriggerChildTour={() => {
+              if (parent && parent.children && parent.children.length > 0) {
+                setActiveChild(parent.children[0]);
+                setView("childApp");
+                setActiveTour("child");
+              } else {
+                alert("Please enroll at least one child profile first in order to replay the Student Tour!");
+              }
+            }}
+          />
+        )}
+
+        {/* 6. PARENTS COMMUNITY BOARD */}
+        {view === "community" && (
+          <ParentCommunity theme={theme} lang={lang} onBack={() => setView("parentDashboard")} />
+        )}
+
+        {/* 7. FULL CHILDREN PORTAL GATEWAY CHASSIS */}
+        {view === "childApp" && activeChild && (
+          <ChildApp
+            child={activeChild}
+            parent={parent}
+            lang={lang}
+            theme={theme}
+            onToggleTheme={() => {
+              const next = theme === "light" ? "dark" : "light";
+              setTheme(next);
+              localStorage.setItem("clats_theme", next);
+            }}
+            activeTourTab={activeTourTab}
+            onExit={() => {
+              setActiveChild(null);
+              if (parent) {
+                pullParentFromSupabase(parent.email).then(fresh => {
+                  if (fresh) setParent(fresh);
+                }).catch(e => console.error(e));
+                setView("parentDashboard");
+              } else {
+                setView("welcome");
+              }
+            }}
+            onUpdateChild={(freshChild) => {
+              setActiveChild(freshChild);
+              if (parent) {
+                const freshParent = {
+                  ...parent,
+                  children: (parent.children || []).map(c => c.id === freshChild.id ? freshChild : c)
+                };
+                setParent(freshParent);
+              }
+            }}
+          />
+        )}
+
+        {/* CLATS ADMIN DASHBOARD OPERATING SYSTEM PORTAL */}
+        {view === "clatsAdmin" && (
+          <AdminDashboard
+            lang={lang}
+            theme={theme}
+            onBackToPortal={() => setView("welcome")}
+          />
+        )}
+      </React.Suspense>
 
       {/* 8. INTERACTIVE TUTORIAL TOURS OVERLAYS AND WELCOME PROMPTS */}
       {showWelcome && (
