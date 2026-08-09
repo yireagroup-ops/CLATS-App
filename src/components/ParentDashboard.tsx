@@ -438,8 +438,8 @@ export const ParentDashboard: React.FC<ParentDashboardProps> = ({
       </div>
 
       {/* STICKY MAIN HEADER NAV PANEL */}
-      <header id="tour-parent-header" className={`sticky top-0 z-40 transition-colors duration-200 border-b backdrop-blur-md px-6 py-4 ${
-        isDark ? "bg-[#0F172A]/90 border-slate-800" : "bg-white/95 border-[#EAEAEA]"
+      <header id="tour-parent-header" className={`sticky top-0 z-40 transition-colors duration-200 border-b px-6 py-4 ${
+        isDark ? "bg-[#0F172A] border-slate-800" : "bg-white border-[#EAEAEA]"
       }`}>
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
           

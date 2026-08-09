@@ -434,13 +434,24 @@ export const TutorialTour: React.FC<TutorialTourProps> = ({ role, childAgeGroup 
     updatePosition();
     // Re-check frequently to support slow animations, toggling drawers, etc.
     const interval = setInterval(updatePosition, 350);
+    
+    // Throttle scroll events to prevent scroll jank
+    let lastScroll = 0;
+    const handleScroll = () => {
+      const now = Date.now();
+      if (now - lastScroll > 50) {
+        lastScroll = now;
+        requestAnimationFrame(updatePosition);
+      }
+    };
+
     window.addEventListener("resize", updatePosition);
-    window.addEventListener("scroll", updatePosition);
+    window.addEventListener("scroll", handleScroll, { passive: true });
 
     return () => {
       clearInterval(interval);
       window.removeEventListener("resize", updatePosition);
-      window.removeEventListener("scroll", updatePosition);
+      window.removeEventListener("scroll", handleScroll);
     };
   }, [stepIndex, currentStep?.targetSelector]);
 

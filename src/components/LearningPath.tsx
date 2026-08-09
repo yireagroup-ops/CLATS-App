@@ -382,7 +382,7 @@ export const LearningPath: React.FC<LearningPathProps> = ({
     >
       
       {/* MAP FLOATING HEADER STATUS BAR */}
-      <div className={`border-b-2 p-4 sticky top-0 z-40 shadow-sm ${isDark ? "bg-slate-900/90 border-slate-800 backdrop-blur-md" : "bg-white/90 backdrop-blur-md border-slate-100"}`}>
+      <div className={`border-b-2 p-4 sticky top-0 z-40 shadow-sm ${isDark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100"}`}>
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <button
             onClick={onBackToModules}
