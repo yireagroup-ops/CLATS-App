@@ -651,9 +651,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToPortal, 
   const [postsList, setPostsList] = useState<any[]>([]);
 
   // Settings State Handles
-  const [stripeSecret, setStripeSecret] = useState("sk_live_51O2aCLATS_WestAfrica_enterprise_keys");
-  const [supabaseUrl, setSupabaseUrl] = useState("https://clats-africa-31a94b.supabase.co");
-  const [youtubeApiKey, setYoutubeApiKey] = useState("AIzaSyWestAfrica_CLATS_CloudKeys_9481");
+  const [stripeSecret, setStripeSecret] = useState("");
+  const [supabaseUrl, setSupabaseUrl] = useState("");
+  const [youtubeApiKey, setYoutubeApiKey] = useState("");
 
   // Dynamic governance configuration states
   const [newRoleName, setNewRoleName] = useState("");
@@ -1231,7 +1231,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToPortal, 
                     type="button"
                     onClick={() => {
                       setForgotStep("email");
-                      setRecoveryEmail(adminEmail || "clatsafrica@gmail.com");
+                      setRecoveryEmail(adminEmail || "");
                     }}
                     className="text-xs text-[#2EC4B6] hover:text-teal-400 font-bold"
                   >
