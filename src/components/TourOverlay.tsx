@@ -516,7 +516,7 @@ export const TutorialTour: React.FC<TutorialTourProps> = ({ role, childAgeGroup 
       
       {/* 1. MASKED INTERACTIVE CUTOUT BACKDROP */}
       {rect && !showCongrats && (
-        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[1px] pointer-events-auto transition-all duration-300">
+        <div className="absolute inset-0 pointer-events-auto">
           <style>{`
             .tour-highlight-glow {
               box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.65), 0 0 20px 8px rgba(46, 196, 182, 0.6), inset 0 0 12px 2px rgba(46, 196, 182, 0.35);
@@ -524,7 +524,7 @@ export const TutorialTour: React.FC<TutorialTourProps> = ({ role, childAgeGroup 
             }
           `}</style>
           <div
-            className="absolute rounded-2xl tour-highlight-glow transition-all duration-300 ease-out"
+            className="absolute rounded-2xl tour-highlight-glow"
             style={{
               top: rect.top - 6,
               left: rect.left - 6,
