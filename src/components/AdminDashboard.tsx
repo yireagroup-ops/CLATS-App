@@ -660,6 +660,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToPortal, 
   const [newRoleDesc, setNewRoleDesc] = useState("");
   const [newRoleTabs, setNewRoleTabs] = useState<TabType[]>(["overview"]);
   const [selectedRoleToEdit, setSelectedRoleToEdit] = useState<AdminRole>("Content Manager");
+  
+  // New Admin creation states
+  const [newAdminEmail, setNewAdminEmail] = useState("");
+  const [newAdminPassword, setNewAdminPassword] = useState("");
+  const [newAdminRole, setNewAdminRole] = useState<AdminRole>("Support Staff");
 
   // Save changes automatically
   const handleSaveAllToLocalStorage = (customReleases?: any[]) => {
@@ -1018,7 +1023,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToPortal, 
   const borderCol = isDark ? "border-[#1F2937]" : "border-[#E5E7EB]";
 
   // Login handler
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError("");
 
@@ -1037,19 +1042,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToPortal, 
       return;
     }
 
-    if (adminEmail === "clatsafrica@gmail.com" && adminPassword === "Godisgood#56") {
-      setIsAuthenticated(true);
-      localStorage.setItem("clats_admin_authenticated", "true");
-      if (rememberMe) {
-        localStorage.setItem("clats_admin_remember", "true");
-        localStorage.setItem("clats_admin_email", adminEmail);
+    try {
+      const res = await fetch("/api/supabase/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: adminEmail, password: adminPassword })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setIsAuthenticated(true);
+        setCurrentRole(data.admin?.role || "Super Admin");
+        localStorage.setItem("clats_admin_authenticated", "true");
+        if (rememberMe) {
+          localStorage.setItem("clats_admin_remember", "true");
+          localStorage.setItem("clats_admin_email", adminEmail);
+        } else {
+          localStorage.removeItem("clats_admin_remember");
+          localStorage.removeItem("clats_admin_email");
+        }
+        showToast("Tunnel Authorized: Enterprise OS session online.");
       } else {
-        localStorage.removeItem("clats_admin_remember");
-        localStorage.removeItem("clats_admin_email");
+        setAuthError(data.msg || "Invalid credentials. Please verify your email and password.");
       }
-      showToast("Tunnel Authorized: Enterprise OS session online.");
-    } else {
-      setAuthError("Invalid credentials. Please verify your email and password.");
+    } catch (err) {
+      setAuthError("Network error. Could not connect to backend.");
     }
   };
 
@@ -4294,6 +4310,79 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToPortal, 
                     </button>
                   </div>
 
+                  <div className="mt-4 pt-4 border-t border-slate-300 dark:border-slate-800 space-y-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider font-mono m-0 flex items-center gap-1.5">
+                      👤 Add New Admin User
+                    </h4>
+                    <div>
+                      <span className="block text-slate-500 uppercase tracking-wider text-[9px] font-mono font-bold mb-1">
+                        Email Address
+                      </span>
+                      <input
+                        type="email"
+                        value={newAdminEmail}
+                        onChange={(e) => setNewAdminEmail(e.target.value)}
+                        className="w-full bg-slate-100 dark:bg-slate-950 border dark:border-slate-800 rounded p-1.8 text-slate-800 dark:text-white outline-none focus:border-[#2EC4B6] font-mono text-[10px]"
+                        placeholder="admin@clats.com"
+                      />
+                    </div>
+                    <div>
+                      <span className="block text-slate-500 uppercase tracking-wider text-[9px] font-mono font-bold mb-1">
+                        Password
+                      </span>
+                      <input
+                        type="password"
+                        value={newAdminPassword}
+                        onChange={(e) => setNewAdminPassword(e.target.value)}
+                        className="w-full bg-slate-100 dark:bg-slate-950 border dark:border-slate-800 rounded p-1.8 text-slate-800 dark:text-white outline-none focus:border-[#2EC4B6] font-mono text-[10px]"
+                        placeholder="••••••••"
+                      />
+                    </div>
+                    <div>
+                      <span className="block text-slate-500 uppercase tracking-wider text-[9px] font-mono font-bold mb-1">
+                        Admin Role
+                      </span>
+                      <select
+                        value={newAdminRole}
+                        onChange={(e) => setNewAdminRole(e.target.value as AdminRole)}
+                        className="w-full bg-slate-100 dark:bg-slate-950 border dark:border-slate-800 rounded p-1.8 text-slate-800 dark:text-white outline-none focus:border-[#2EC4B6] font-mono text-[10px]"
+                      >
+                        {Object.keys(rolesPermissions).map(r => (
+                          <option key={r} value={r}>{r}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        if (!newAdminEmail || !newAdminPassword) {
+                          showToast("Email and password are required.");
+                          return;
+                        }
+                        try {
+                          const res = await fetch("/api/supabase/admin/create", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ email: newAdminEmail, password: newAdminPassword, role: newAdminRole })
+                          });
+                          const data = await res.json();
+                          if (data.ok) {
+                            showToast("New admin successfully added to database.");
+                            setNewAdminEmail("");
+                            setNewAdminPassword("");
+                          } else {
+                            showToast(data.msg || "Error adding admin.");
+                          }
+                        } catch (err) {
+                          showToast("Network error while adding admin.");
+                        }
+                      }}
+                      className="bg-blue-600 text-white px-3.5 py-2 rounded-xl text-xs font-bold w-full mt-2"
+                    >
+                      Create Administrator
+                    </button>
+                  </div>
+                </div>
+
                   {/* SUPABASE SQL INSTANT SETUP GUIDE SECTION */}
                   <div className="mt-4 p-4 rounded-xl border border-dashed border-slate-300 dark:border-slate-800 space-y-3 bg-slate-50 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300">
                     <div className="flex justify-between items-center">
@@ -4511,6 +4600,18 @@ INSERT INTO companion_content (id, companion, message_type, text_content, audio_
 ('cmp-ch-gr', 'chibi', 'greeting', 'Hi there! Let''s explore code together today! 🧸', '', 'early'),
 ('cmp-kb-mv', 'kobe', 'motivation', 'Awesome job! You are becoming a tech master already!', '', 'young')
 ON CONFLICT (id) DO NOTHING;
+
+-- 17. Create clats_admins table
+CREATE TABLE IF NOT EXISTS clats_admins (
+  email TEXT PRIMARY KEY,
+  password TEXT NOT NULL,
+  role TEXT DEFAULT 'Super Admin',
+  created_at BIGINT DEFAULT extract(epoch from now()) * 1000
+);
+
+INSERT INTO clats_admins (email, password, role) 
+VALUES ('ikpeukana964@gmail.com', '12345', 'Super Admin')
+ON CONFLICT (email) DO NOTHING;
 `;
                           navigator.clipboard.writeText(sql);
                           showToast("Supabase SQL Schema Script copied to clipboard!");

@@ -670,6 +670,18 @@ INSERT INTO companion_config (id, companion_name, voice_url, voice_mode, speech_
 ('cfg-kobe', 'kobe', '', 'Browser TTS', 1.0, 1.0, 'en-US'),
 ('cfg-chibi', 'chibi', '', 'Browser TTS', 1.0, 1.0, 'en-US')
 ON CONFLICT (id) DO NOTHING;
+
+-- 17. Create clats_admins table
+CREATE TABLE IF NOT EXISTS clats_admins (
+  email TEXT PRIMARY KEY,
+  password TEXT NOT NULL,
+  role TEXT DEFAULT 'Super Admin',
+  created_at BIGINT DEFAULT extract(epoch from now()) * 1000
+);
+
+INSERT INTO clats_admins (email, password, role) 
+VALUES ('ikpeukana964@gmail.com', '12345', 'Super Admin')
+ON CONFLICT (email) DO NOTHING;
 `;
 
 // 2. SQL Schema code exposure
@@ -848,6 +860,50 @@ app.post("/api/supabase/auth/register", async (req, res) => {
   } catch (err: any) {
     console.error("Supabase Register error:", err);
     res.status(500).json({ ok: false, msg: err.message || "Supabase Registration failed." });
+  }
+});
+
+// Admin login
+app.post("/api/supabase/admin/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const sb = getSupabaseClient();
+    if (!sb) return res.json({ ok: false, msg: "DB not connected" });
+    
+    const { data, error } = await sb.from("clats_admins").select("*").eq("email", email.toLowerCase().trim()).single();
+    if (error || !data) {
+      return res.json({ ok: false, msg: "Invalid admin credentials." });
+    }
+    
+    if (data.password !== password) {
+      return res.json({ ok: false, msg: "Invalid admin credentials." });
+    }
+    
+    return res.json({ ok: true, admin: data });
+  } catch (err: any) {
+    return res.json({ ok: false, msg: err.message });
+  }
+});
+
+// Admin create
+app.post("/api/supabase/admin/create", async (req, res) => {
+  try {
+    const { email, password, role } = req.body;
+    const sb = getSupabaseClient();
+    if (!sb) return res.json({ ok: false, msg: "DB not connected" });
+    
+    const { error } = await sb.from("clats_admins").insert([{
+      email: email.toLowerCase().trim(),
+      password,
+      role: role || "Support Staff"
+    }]);
+    
+    if (error) {
+      return res.json({ ok: false, msg: error.message });
+    }
+    return res.json({ ok: true });
+  } catch (err: any) {
+    return res.json({ ok: false, msg: err.message });
   }
 });
 
